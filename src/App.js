@@ -1,25 +1,52 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect, useState } from 'react';
+import { Amplify } from 'aws-amplify';
+import awsConfig from './aws-config';
+import { withAuthenticator } from '@aws-amplify/ui-react';
+import '@aws-amplify/ui-react/styles.css';
+import { fetchUserAttributes } from 'aws-amplify/auth';
 
-function App() {
+
+import AdminDashboard from './components/AdminDashboard';
+import CompanyOneDashboard from './components/CompanyOneDashboard';
+import CompanyTwoDashboard from './components/CompanyTwoDashboard';
+
+Amplify.configure(awsConfig);
+
+function App({ signOut, user }) {
+  const [role, setRole] = useState('');
+
+  useEffect(() => {
+    const getUserAttributes = async () => {
+      try {
+        const attributes = await fetchUserAttributes();
+        const roleAttr = attributes['custom:role']?.toLowerCase();
+        console.log("Fetched custom:role:", roleAttr);
+        setRole(roleAttr);
+      } catch (err) {
+        console.error('Error fetching attributes:', err);
+      }
+    };
+
+    getUserAttributes();
+  }, []);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div style={{ padding: '2rem' }}>
+      <h2>Welcome, {user.username}</h2>
+      <p>Role: <strong>{role}</strong></p>
+
+      {role === 'admin' && <AdminDashboard />}
+      {role === 'abc' && <CompanyOneDashboard />}
+      {role === 'xyz' && <CompanyTwoDashboard />}
+      {!['admin', 'abc', 'xyz'].includes(role) && (
+        <p style={{ color: 'red' }}>No dashboard found for your role.</p>
+      )}
+
+      <button onClick={signOut} style={{ marginTop: '1rem' }}>
+        Sign Out
+      </button>
     </div>
   );
 }
 
-export default App;
+export default withAuthenticator(App);
